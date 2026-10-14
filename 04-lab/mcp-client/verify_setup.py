@@ -11,17 +11,16 @@ def check_environment():
     """Check if .env file exists and is configured"""
     print("🔍 Checking environment configuration...")
     
-    env_file = Path(".env")
-    if not env_file.exists():
+    from dotenv import find_dotenv, load_dotenv
+    env_path = find_dotenv(usecwd=True)
+    if not env_path and not Path(".env").exists():
         print("❌ .env file not found")
         print("   Run: echo 'GOOGLE_API_KEY=your_key' > .env")
         return False
     
-    # Check if GOOGLE_API_KEY is set
-    from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(env_path or ".env")
     
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("LLM_API_KEY")
     if not api_key or api_key == "your_google_api_key_here":
         print("❌ GOOGLE_API_KEY not configured in .env")
         print("   Get key from: https://aistudio.google.com/apikey")

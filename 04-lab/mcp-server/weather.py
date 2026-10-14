@@ -2,11 +2,23 @@ from typing import Any
 import asyncio
 import httpx
 import os
-from mcp.server.fastmcp import FastMCP
+from dotenv import find_dotenv, load_dotenv
 
-# Initialize FastMCP server
+load_dotenv(find_dotenv(usecwd=True))
+
+# Initialize MCP server (supports MCP v2 MCPServer and FastMCP fallback)
 port = int(os.getenv("PORT", 8085))
-mcp = FastMCP("weather", host="0.0.0.0", port=port)
+
+try:
+    from mcp.server.mcpserver import MCPServer
+    mcp = MCPServer("weather")
+except ImportError:
+    try:
+        from fastmcp import FastMCP
+        mcp = FastMCP("weather")
+    except ImportError:
+        from mcp.server.fastmcp import FastMCP
+        mcp = FastMCP("weather")
 
 # Constants
 WEATHERAPI_BASE = "https://api.weatherapi.com/v1"
@@ -17,8 +29,8 @@ API_KEY = os.getenv("WEATHERAPI_KEY")
 
 async def make_weather_request(endpoint: str, params: dict[str, str]) -> dict[str, Any] | None:
     """Make a request to the WeatherAPI with proper error handling."""
-    # Check if API key is set
-    if not API_KEY:
+    api_key = os.getenv("WEATHERAPI_KEY") or API_KEY
+    if not api_key:
         print("ERROR: WeatherAPI key not set. Please set WEATHERAPI_KEY environment variable.")
         return None
         
@@ -26,7 +38,7 @@ async def make_weather_request(endpoint: str, params: dict[str, str]) -> dict[st
         "User-Agent": USER_AGENT,
     }
     # Add API key to parameters
-    params["key"] = API_KEY
+    params["key"] = api_key
     
     url = f"{WEATHERAPI_BASE}/{endpoint}"
     
@@ -146,7 +158,7 @@ if __name__ == "__main__":
     
     if is_cloud_run or is_standalone:
         print(f"🚀 Starting MCP server on http://0.0.0.0:{port}/mcp")
-        mcp.run(transport="streamable-http")
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
     else:
-        print("Starting FastMCP server in stdio mode for local client", file=sys.stderr)
+        print("Starting MCP server in stdio mode for local client", file=sys.stderr)
         mcp.run()

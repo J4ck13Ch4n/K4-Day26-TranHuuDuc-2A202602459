@@ -9,8 +9,11 @@ Cách chạy:
     python weather_function_calling.py
 """
 
+from dotenv import find_dotenv, load_dotenv
 from google import genai
 from google.genai import types
+
+load_dotenv(find_dotenv(usecwd=True))
 
 client = genai.Client()
 
